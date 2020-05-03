@@ -13,7 +13,8 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('voc_dir', help='input annotated directory')
-    parser.add_argument('test_ratio', help='test set ratio', default=0.3)
+    parser.add_argument('val_ratio', help='validation set ratio', default=0.1)
+    parser.add_argument('test_ratio', help='test set ratio', default=0.2)
     parser.add_argument('--random_state', help='random seed ', default=42)
     args = parser.parse_args()
 
@@ -31,15 +32,17 @@ def main():
         os.makedirs(outputDir)
 
     train_file = osp.join(outputDir, 'train.txt')
+    val_file=osp.join(outputDir,'val.txt')
     test_file = osp.join(outputDir, 'test.txt')
-    if osp.exists(train_file) or osp.exists(test_file):
-        print('train.txt: {} exists or \ntest.txt: {} exists,\nplease check!'.format(train_file, test_file))
+    if osp.exists(train_file) or osp.exists(test_file) or osp.exists(val_file):
+        print('train.txt: {} exists or \ntest.txt: {}  or \n val.txt:{} exists,\nplease check!'.format(train_file, test_file,val_file))
         sys.exit(1)
 
     total_files = glob.glob(osp.join(annotationDir, '*.xml'))
     total_files = [Path(o).stem for o in total_files]
-    train_set, test_set = train_test_split(total_files, test_size=float(args.test_ratio),
+    train_val_set, test_set = train_test_split(total_files, test_size=float(args.test_ratio),
                                            random_state=int(args.random_state))
+    train_set,val_set=train_test_split(train_val_set,test_size=float(args.val_ratio),random_state=int(args.random_state))
 
     f_train = open(train_file, 'w')
     for file in train_set:
@@ -51,8 +54,13 @@ def main():
         f_test.write(file + "\n")
     f_test.close()
 
-    print("split Completed. Number of Train Samples: {}. Number of Test Samples: {}".format(len(train_set),
-                                                                                            len(test_set)))
+    f_val=open(val_file,'w')
+    for file in val_set:
+        f_val.write(file+'\n')
+    f_val.close()
+
+    print("split Completed. Number of Train Samples: {}. Number of Test Samples: {}.Number of Val Samples:{}".format(len(train_set),
+                                                                                            len(test_set),len(val_set)))
 
 
 if __name__ == '__main__':

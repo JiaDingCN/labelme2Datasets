@@ -83,7 +83,7 @@ def main():
 
         # regex: get image name
         filename = osp.splitext(osp.basename(label_file))[0]
-        base = pattern.findall(filename)[0]  # TODO: you can change it here: design a method for sample name,
+        base = filename  # TODO: you can change it here: design a method for sample name,
         # TODO: or just use file name.
         # base = osp.splitext(osp.basename(label_file))[0]
 
@@ -107,7 +107,8 @@ def main():
         else:
             img_file = osp.join(osp.dirname(label_file), data['imagePath'])
             img = np.asarray(PIL.Image.open(img_file))
-        PIL.Image.fromarray(img).save(out_img_file)
+        PIL.Image.fromarray(img).convert('RGB').save(out_img_file)
+            
 
         # generate voc format annotation file
         maker = lxml.builder.ElementMaker()
@@ -137,15 +138,22 @@ def main():
             # TODO: change it for annotation shape type, some use points, some use rectangle. Here shows the points one.
             class_name = shape['label']  # object name in json file
             if args.label_dict is not None:
-                class_name = fst2snd_dict[class_name]
+                try:
+                    class_name = fst2snd_dict[class_name]
+                except KeyError:
+                    continue
 
             class_id = class_names.index(class_name)  # convert to class id
 
             # box info from annotated points
             xmin = shape['points'][0][0]
+            #print("xmin:",xmin)
             ymin = shape['points'][0][1]
-            xmax = shape['points'][2][0]
-            ymax = shape['points'][2][1]
+            #print("ymin",ymin)
+            xmax = shape['points'][1][0]
+            #print("xmax:",xmax)
+            ymax = shape['points'][1][1]
+            #print("ymax:",ymax)
 
             # swap if min is larger than max.
             xmin, xmax = sorted([xmin, xmax])
@@ -175,7 +183,7 @@ def main():
             img, bboxes, labels, captions=captions
         )
 
-        PIL.Image.fromarray(viz).save(out_viz_file)
+        PIL.Image.fromarray(viz).convert('RGB').save(out_viz_file)
 
         # another visualize format (colored mask in bbox)
         label_name_to_value = {'_background_': 0}
@@ -192,11 +200,14 @@ def main():
         label_names = [None] * (max(label_name_to_value.values()) + 1)
         for name, value in label_name_to_value.items():
             if args.label_dict is not None:
-                name = fst2snd_dict[name]
+                try:
+                    name = fst2snd_dict[name]
+                except KeyError:
+                    continue
             label_names[value] = name
 
         lbl_viz = utils.draw_label(lbl, img, label_names)
-        PIL.Image.fromarray(lbl_viz).save(out_colorize_file)
+        PIL.Image.fromarray(lbl_viz).convert('RGB').save(out_colorize_file)
 
         # save voc annotation to xml file
         with open(out_xml_file, 'wb') as f:
